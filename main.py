@@ -28,14 +28,16 @@ def show_main_screen():
     global select_style
     # 기존에 표시된 모든 위젯을 제거
     for widget in root.winfo_children():
+        print(f"Hiding widget: {widget.winfo_name()} (Type: {type(widget).__name__})")
         widget.pack_forget()
+        widget.place_forget()
 
     # 라디오 버튼 스타일 선택 화면 생성
-    radio_frame = tk.Frame(root, bg='white')
+    radio_frame = tk.Frame(root)
     radio_frame.pack(fill="both", expand=True)
 
     # 제목 라벨 추가
-    style_title = tk.Label(radio_frame, text="어떤 스타일로 찍을까요?", font=("Arial", 25, "bold"), fg="#FF69B4", bg='white')
+    style_title = tk.Label(radio_frame, text="어떤 스타일로 찍을까요?", font=("Arial", 25, "bold"), fg="#FF69B4")
     style_title.pack(pady=20)
 
     # 라디오 버튼 값 저장 변수 초기화
@@ -48,17 +50,17 @@ def show_main_screen():
     ]
 
     # 버튼을 담을 프레임 생성
-    buttons_frame = tk.Frame(radio_frame, bg='white')
+    buttons_frame = tk.Frame(radio_frame)
     buttons_frame.pack()
 
     # 스타일 이미지와 라디오 버튼 생성
     for i, image_path in enumerate(style_images):
         img = Image.open(image_path)
-        img = img.resize((320, 480), Image.Resampling.LANCZOS)
+        img = img.resize((int(320*0.8), int(480*0.8)), Image.Resampling.LANCZOS)
         img_tk = ImageTk.PhotoImage(img)
 
         if i % 5 == 0:
-            row_frame = tk.Frame(buttons_frame, bg='white')
+            row_frame = tk.Frame(buttons_frame,)
             row_frame.pack()
 
         radio_button = tk.Radiobutton(
@@ -66,8 +68,7 @@ def show_main_screen():
             text=f"",
             variable=radio_value,
             value=f"style{i+1}",
-            font=("Arial", 18),
-            bg='white',
+            font=("Arial", 40),            
             fg='black',
             selectcolor='pink',
             image=img_tk,
@@ -89,6 +90,7 @@ def start_camera(selected_style):
     # 기존 위젯 제거
     for widget in root.winfo_children():
         widget.pack_forget()
+        widget.place_forget()
 
     root.update_idletasks()
 
@@ -96,7 +98,7 @@ def start_camera(selected_style):
     cap = cv2.VideoCapture(0)
     print("TEST")
     # 카메라 화면 표시용 라벨 생성
-    camera_label = tk.Label(root, width=640, height=480)
+    camera_label = tk.Label(root, width=640, height=960)
     camera_label.pack()
 
     # 저장 경로 설정
@@ -108,11 +110,11 @@ def start_camera(selected_style):
     max_photos = 6
 
     # 사진 개수와 카운트다운 표시용 라벨 생성
-    photo_count_label = tk.Label(root, text=f"사진: {photo_count}/{max_photos}", font=("Arial", 18), bg="white")
+    photo_count_label = tk.Label(root, text=f"사진: {photo_count}/{max_photos}", font=("Arial", 18))
     photo_count_label.pack(pady=10)
 
-    countdown_label = tk.Label(root, text="", font=("Arial", 40, "bold"), fg="red", bg="white")
-    countdown_label.pack(pady=20)
+    countdown_label = tk.Label(root, text="", font=("Arial", 200, "bold"), fg="red")
+    countdown_label.place(relx=0.2, rely=0.5, anchor="center")
 
     def release_camera_and_next():
         """웹캠을 해제하고 다음 화면으로 전환."""
@@ -132,10 +134,8 @@ def start_camera(selected_style):
         # 이미지를 저장
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.flip(frame, 1)
-        x, y, w, h = 160,0,320,480
+        x, y, w, h = 160,0,320,420
         frame = frame[y:y+h, x:x+w]
-
-        
 
 
         photo_filename = os.path.join(save_path, f"photo_{photo_count + 1}.png")
@@ -181,10 +181,11 @@ def start_camera(selected_style):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.flip(frame, 1)
 
-        x, y, w, h = 160,0,320,480
+        x, y, w, h = 160,0,320,420
         cropped_frame = frame[y:y+h, x:x+w]
 
-        img = Image.fromarray(cropped_frame)
+        img = Image.fromarray(cropped_frame)  
+        img = img.resize((int(320*2), int(420*2)), Image.Resampling.LANCZOS)      
         img_tk = ImageTk.PhotoImage(image=img)
 
         camera_label.config(image=img_tk)
@@ -197,10 +198,10 @@ def start_camera(selected_style):
     start_countdown()
 
 def show_photos_for_selection():
-    title_label.pack_forget()
-    # 기존 위젯 제거
+    global select_photo
     for widget in root.winfo_children():
         widget.pack_forget()
+        widget.place_forget()
 
     photos = []
     save_path = "captured_photos"
@@ -210,7 +211,7 @@ def show_photos_for_selection():
     for i in range(max_photos):
         photo_filename = os.path.join(save_path, f"photo_{i + 1}.png")
         photo = Image.open(photo_filename)
-        photo = photo.resize((320, 480), Image.Resampling.LANCZOS)
+        photo = photo.resize((int(320 * 0.8), int(420 * 0.8)), Image.Resampling.LANCZOS)
         photos.append(ImageTk.PhotoImage(photo))
 
     selected_count = 0
@@ -224,8 +225,16 @@ def show_photos_for_selection():
     # 선택 상태 업데이트 함수
     def update_count():
         nonlocal selected_count
+        select_photo.clear()
         selected_count = sum([var.get() for var in checkbox_vars])
         selected_count_label.config(text=f"선택된 사진: {selected_count}/4")
+        
+        # 선택된 사진의 인덱스 저장
+        for idx, var in enumerate(checkbox_vars):
+            if var.get():
+                select_photo.append(idx + 1)
+
+        # 선택 완료 버튼 활성화/비활성화
         if selected_count == 4:
             select_button.config(state="normal")
         else:
@@ -238,30 +247,31 @@ def show_photos_for_selection():
 
         for j in range(3):
             if i + j < max_photos:
-                photo_label = tk.Label(row_frame, image=photos[i + j])
-                photo_label.image = photos[i + j]
-                photo_label.pack(side="left", padx=10)
-
                 checkbox = tk.Checkbutton(
                     row_frame,
-                    text=f"사진 {i + j + 1}",
+                    text=f"{i + j + 1}",
                     variable=checkbox_vars[i + j],
-                    font=("Arial", 15),
+                    font=("Arial", 20),
+                    image=photos[i + j],  # 이미지 설정
+                    compound="top",  # 이미지를 텍스트 위에 배치
                     command=update_count
                 )
+                checkbox.image = photos[i + j]  # 참조 유지
                 checkbox.pack(side="left", padx=10)
 
-    # 선택 완료 버튼 생성
     select_button = tk.Button(root, text="선택 완료", font=("Arial", 20), command=show_photo, state="disabled")
     select_button.pack(pady=20)
 
+
 from PIL import Image, ImageTk
 
-def show_photo():
+def show_photo():    
+    print(select_photo)
     for widget in root.winfo_children():
         widget.pack_forget()
+        widget.place_forget()
 
-    show_photo_title = tk.Label(root, text="사진확인하기", font=("Arial", 25, "bold"), fg="#FF69B4", bg='white')
+    show_photo_title = tk.Label(root, text="사진확인하기", font=("Arial", 25, "bold"), fg="#FF69B4")
     show_photo_title.pack(pady=20)
 
     save_path = "captured_photos"
@@ -272,11 +282,11 @@ def show_photo():
     photo = photo.resize((640, 960), Image.Resampling.LANCZOS)
     photos.append(photo)
     # 저장된 사진 로드 및 리사이즈
-    for i in range(max_photos):
-        photo_filename = os.path.join(save_path, f"photo_{i + 1}.png")
+    for i in select_photo:
+        photo_filename = os.path.join(save_path, f"photo_{i}.png")
         if os.path.exists(photo_filename):
             photo = Image.open(photo_filename).convert("RGBA")  # RGBA로 변환
-            photo = photo.resize((320, 480), Image.Resampling.LANCZOS)  # 작은 사진들
+            photo = photo.resize((320, 420), Image.Resampling.LANCZOS)  # 작은 사진들
             photos.append(photo)
 
     # 메인 사진 표시
@@ -285,7 +295,7 @@ def show_photo():
         base_image = photos[0].copy()
 
         # 작은 사진들을 메인 사진 위에 겹치기
-        positions = [(0, 0), (0, 480), (320, 0), (320, 480)]  # 작은 사진 위치
+        positions = [(0, 0), (0, 420), (320, 0), (320, 420)]  # 작은 사진 위치
 
         for idx, (x, y) in enumerate(positions):
             if idx + 1 < len(photos):
@@ -297,12 +307,12 @@ def show_photo():
         final_image = ImageTk.PhotoImage(base_image)
 
         # 최종 이미지를 표시
-        main_photo_label = tk.Label(root, image=final_image, bg='white')
+        main_photo_label = tk.Label(root, image=final_image)
         main_photo_label.image = final_image
         main_photo_label.pack(pady=20)
 
     else:
-        error_label = tk.Label(root, text="사진 파일이 존재하지 않습니다.", font=("Arial", 18), fg="red", bg='white')
+        error_label = tk.Label(root, text="사진 파일이 존재하지 않습니다.", font=("Arial", 18), fg="red")
         error_label.pack(pady=20)
 
 
@@ -312,26 +322,32 @@ root = tk.Tk()
 root.title("매천네컷 프로그램")
 root.geometry("1920x1080")
 
-# 배경 이미지 설정
-bg_image = Image.open("back.jpg")
-bg_image = bg_image.resize((1920, 1080), Image.Resampling.LANCZOS)
-bg_photo = ImageTk.PhotoImage(bg_image)
 
-canvas = tk.Canvas(root, width=1920, height=1080)
+# 배경 이미지 설정
+try:
+    bg_image = Image.open("background.png")
+    bg_image = bg_image.resize((1920, 1080), Image.Resampling.LANCZOS)
+    bg_photo = ImageTk.PhotoImage(bg_image)
+except Exception as e:
+    print(f"Error loading image: {e}")
+    exit()
+
+canvas = tk.Label(root, image=bg_photo)
+canvas.image = bg_photo  # 참조를 유지
 canvas.pack(fill="both", expand=True)
 
-canvas.create_image(0, 0, image=bg_photo, anchor="nw")
 
-# 초기 화면 생성
-main_screen = tk.Frame(root)
-main_screen.place(relwidth=1, relheight=1)
+# "시작하기" 버튼 이미지 설정
+try:
+    btn_image = Image.open("start_btn.png")    
+    btn_photo = ImageTk.PhotoImage(btn_image)
+except Exception as e:
+    print(f"Error loading button image: {e}")
+    exit()
 
-# 초기 화면 제목과 시작 버튼 추가
-title_label = tk.Label(main_screen, text="매천네컷", font=("Arial", 70, "bold"), bg="white")
-title_label.pack(pady=50)
-
-start_button = tk.Button(main_screen, text="인생네컷 시작하기", font=("Arial", 25), command=show_main_screen)
-start_button.pack(pady=150)
+start_button = tk.Button(root, image=btn_photo, command=show_main_screen, borderwidth=0)  # 테두리 제거
+start_button.image = btn_photo  # 참조 유지
+start_button.place(relx=0.5, rely=0.8, anchor="center")  # 가운데 정렬
 
 # 웹캠 초기화
 if not initialize_camera():
